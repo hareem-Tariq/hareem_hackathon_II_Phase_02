@@ -1,0 +1,1228 @@
+# Todo Full-Stack Web Application - Task Breakdown
+
+**Version**: 1.0.0  
+**Date**: January 1, 2026  
+**Status**: Task Planning  
+**Scope**: Detailed implementation tasks derived from speckit.plan
+
+---
+
+## TASK OVERVIEW
+
+This document breaks down the architecture defined in `speckit.plan` into discrete, actionable implementation tasks. Each task is designed to be completed independently while maintaining clear dependencies.
+
+**Task Naming Convention**: `P2-T-XXX` (Phase 2 - Task - Number)
+
+**Task Categories**:
+1. Infrastructure & Setup (P2-T-001 to P2-T-005)
+2. Backend Development (P2-T-006 to P2-T-015)
+3. Frontend Development (P2-T-016 to P2-T-025)
+4. Integration & Testing (P2-T-026 to P2-T-030)
+
+---
+
+## CATEGORY 1: INFRASTRUCTURE & SETUP
+
+### P2-T-001: Initialize Monorepo Structure
+
+**Description**: Create the complete monorepo directory structure for frontend, backend, and specs folders.
+
+**Preconditions**:
+- Empty project directory exists
+- Git repository initialized (optional)
+
+**Files to be Created**:
+```
+todo-phase2-full_stack/
+├── frontend/.gitkeep
+├── backend/.gitkeep
+├── specs/.gitkeep
+├── .gitignore
+└── README.md
+```
+
+**Expected Behavior**:
+- Directory structure matches `speckit.plan` Section 1
+- .gitignore includes `node_modules/`, `__pycache__/`, `.env`, `.env.local`, `*.pyc`, `.next/`, `dist/`, `build/`
+- README.md contains project overview and setup instructions
+
+**Mapping**:
+- **speckit.specify**: Project Structure Requirements
+- **speckit.plan**: Section 1 (MONOREPO STRUCTURE)
+
+---
+
+### P2-T-002: Setup Backend Python Environment
+
+**Description**: Initialize FastAPI backend with Python package configuration and dependencies.
+
+**Preconditions**:
+- P2-T-001 completed
+- Python 3.11+ installed
+
+**Files to be Created**:
+```
+backend/
+├── requirements.txt
+├── pyproject.toml
+├── .env.example
+└── app/__init__.py
+```
+
+**Files to be Modified**: None
+
+**Expected Behavior**:
+- `requirements.txt` includes: `fastapi`, `uvicorn[standard]`, `sqlmodel`, `pyjwt`, `python-dotenv`, `pydantic[email]`, `passlib[bcrypt]`
+- `pyproject.toml` defines project metadata (name: "todo-backend", version: "1.0.0")
+- `.env.example` includes: `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN`
+- Virtual environment can be created and dependencies installed
+- Running `pip install -r requirements.txt` succeeds without errors
+
+**Mapping**:
+- **speckit.specify**: Backend Technology Stack
+- **speckit.plan**: Section 3.1 (Technology Stack)
+
+---
+
+### P2-T-003: Setup Frontend Next.js Environment
+
+**Description**: Initialize Next.js 14+ frontend with TypeScript and required dependencies.
+
+**Preconditions**:
+- P2-T-001 completed
+- Node.js 18+ installed
+
+**Files to be Created**:
+```
+frontend/
+├── package.json
+├── tsconfig.json
+├── next.config.js
+├── .env.local.example
+├── app/
+│   └── layout.tsx
+│   └── page.tsx
+└── public/.gitkeep
+```
+
+**Files to be Modified**: None
+
+**Expected Behavior**:
+- `package.json` includes: `next`, `react`, `react-dom`, `typescript`, `@types/react`, `@types/node`, `tailwindcss`, `better-auth`
+- `tsconfig.json` configured for Next.js App Router with strict mode
+- `next.config.js` includes basic configuration
+- `.env.local.example` includes: `NEXT_PUBLIC_API_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
+- Running `npm install` succeeds without errors
+- Running `npm run dev` starts development server on port 3000
+
+**Mapping**:
+- **speckit.specify**: Frontend Technology Stack
+- **speckit.plan**: Section 2.1 (Technology Stack)
+
+---
+
+### P2-T-004: Configure Development Database
+
+**Description**: Set up SQLite database for development with connection configuration.
+
+**Preconditions**:
+- P2-T-002 completed
+
+**Files to be Created**:
+```
+backend/
+├── app/config.py
+└── app/database.py
+```
+
+**Files to be Modified**: None
+
+**Expected Behavior**:
+- `config.py` loads environment variables using `pydantic.BaseSettings`
+- `config.py` defines: `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN`, `JWT_ALGORITHM="HS256"`, `JWT_EXPIRATION_HOURS=1`
+- `database.py` creates SQLModel engine from `DATABASE_URL`
+- `database.py` defines `get_db()` dependency for FastAPI
+- `database.py` includes function to create all tables: `create_db_and_tables()`
+- Database connection can be established successfully
+- No actual tables created yet (models not defined)
+
+**Mapping**:
+- **speckit.specify**: Database Configuration
+- **speckit.plan**: Section 4.1 (Database Technology)
+
+---
+
+### P2-T-005: Create Project Documentation
+
+**Description**: Move specification documents to specs folder and create development setup guide.
+
+**Preconditions**:
+- P2-T-001 completed
+- speckit.constitution, speckit.specify, speckit.plan exist in root
+
+**Files to be Created**:
+```
+specs/
+└── SETUP.md
+```
+
+**Files to be Modified**:
+- Move `speckit.constitution` to `specs/`
+- Move `speckit.specify` to `specs/`
+- Move `speckit.plan` to `specs/`
+- Move `speckit.tasks` to `specs/`
+
+**Expected Behavior**:
+- All specification documents organized in `specs/` directory
+- `SETUP.md` includes:
+  - Prerequisites (Python 3.11+, Node.js 18+)
+  - Backend setup commands
+  - Frontend setup commands
+  - Database initialization commands
+  - How to run both servers
+- Root README.md links to `specs/SETUP.md`
+
+**Mapping**:
+- **speckit.specify**: Documentation Requirements
+- **speckit.plan**: Section 1 (MONOREPO STRUCTURE)
+
+---
+
+## CATEGORY 2: BACKEND DEVELOPMENT
+
+### P2-T-006: Define SQLModel Task Model
+
+**Description**: Create SQLModel Task model with all fields, constraints, and relationships.
+
+**Preconditions**:
+- P2-T-002 completed
+- P2-T-004 completed
+
+**Files to be Created**:
+```
+backend/
+└── app/models/
+    ├── __init__.py
+    └── task.py
+```
+
+**Files to be Modified**: None
+
+**Expected Behavior**:
+- `task.py` defines `Task` class inheriting from `SQLModel` with `table=True`
+- Fields defined:
+  - `id: UUID = Field(default_factory=uuid4, primary_key=True)`
+  - `user_id: str = Field(index=True, nullable=False)`
+  - `title: str = Field(max_length=200, nullable=False)`
+  - `description: str | None = Field(default=None, max_length=1000)`
+  - `completed: bool = Field(default=False, nullable=False)`
+  - `created_at: datetime = Field(default_factory=datetime.utcnow)`
+  - `updated_at: datetime = Field(default_factory=datetime.utcnow)`
+- Model can be imported without errors
+- Type hints are correct and pass validation
+
+**Mapping**:
+- **speckit.specify**: Task Entity Definition
+- **speckit.plan**: Section 4.2 (Database Schema - Tasks Table)
+
+---
+
+### P2-T-007: Define Pydantic Request/Response Schemas
+
+**Description**: Create Pydantic schemas for task API request and response validation.
+
+**Preconditions**:
+- P2-T-006 completed
+
+**Files to be Created**:
+```
+backend/
+└── app/schemas/
+    ├── __init__.py
+    └── task.py
+```
+
+**Files to be Modified**: None
+
+**Expected Behavior**:
+- `task.py` defines the following Pydantic models:
+  - `TaskBase`: Base schema with `title`, `description` (optional)
+  - `TaskCreate(TaskBase)`: Schema for creating tasks (inherits from TaskBase)
+  - `TaskUpdate(TaskBase)`: Schema for updating tasks (all fields optional)
+  - `TaskResponse(TaskBase)`: Response schema with `id`, `user_id`, `completed`, `created_at`, `updated_at`
+- All schemas use proper type hints
+- Schemas include validation (e.g., title min length, max lengths)
+- Field examples included in schema documentation
+
+**Mapping**:
+- **speckit.specify**: API Request/Response Formats
+- **speckit.plan**: Section 3.2 (SQLModel Models - Pydantic Schemas)
+
+---
+
+### P2-T-008: Initialize FastAPI Application
+
+**Description**: Create main FastAPI application instance with CORS and basic configuration.
+
+**Preconditions**:
+- P2-T-002 completed
+- P2-T-004 completed
+
+**Files to be Created**:
+```
+backend/
+└── app/main.py
+```
+
+**Files to be Modified**: None
+
+**Expected Behavior**:
+- `main.py` creates FastAPI app instance with title, version, description
+- CORS middleware configured to allow frontend origin from config
+- CORS allows credentials, methods (GET, POST, PUT, DELETE, PATCH), headers
+- Startup event handler to create database tables
+- Health check endpoint: `GET /health` returns `{"status": "ok"}`
+- App can be run with `uvicorn app.main:app --reload`
+- Accessing `http://localhost:8000/docs` shows Swagger UI
+- Health check returns 200 OK
+
+**Mapping**:
+- **speckit.specify**: API Server Requirements
+- **speckit.plan**: Section 3.2 (FastAPI Application)
+
+---
+
+### P2-T-009: Implement JWT Verification Middleware
+
+**Description**: Create middleware to extract, verify, and validate JWT tokens from requests.
+
+**Preconditions**:
+- P2-T-002 completed
+- P2-T-004 completed
+
+**Files to be Created**:
+```
+backend/
+└── app/middleware/
+    ├── __init__.py
+    └── auth.py
+```
+
+**Files to be Modified**: None
+
+**Expected Behavior**:
+- `auth.py` defines `verify_jwt(token: str) -> dict` function:
+  - Decodes JWT using `jwt.decode()` with secret from config
+  - Validates signature and expiration
+  - Returns payload dict with `user_id` and `email`
+  - Raises `HTTPException(401)` if token invalid or expired
+- `auth.py` defines `get_token_from_header(authorization: str) -> str` function:
+  - Extracts token from "Bearer <token>" format
+  - Raises `HTTPException(401)` if header malformed
+- Functions can be tested independently
+- Invalid tokens raise 401 Unauthorized
+- Expired tokens raise 401 Unauthorized
+
+**Mapping**:
+- **speckit.specify**: Authentication & Authorization
+- **speckit.plan**: Section 3.2 (JWT Verification Middleware)
+
+---
+
+### P2-T-010: Create FastAPI Authentication Dependency
+
+**Description**: Implement FastAPI dependency to extract and verify current user from JWT.
+
+**Preconditions**:
+- P2-T-009 completed
+
+**Files to be Created**:
+```
+backend/
+└── app/dependencies.py
+```
+
+**Files to be Modified**: None
+
+**Expected Behavior**:
+- `dependencies.py` defines `get_current_user(authorization: str = Header(...)) -> str` dependency:
+  - Calls `get_token_from_header()` to extract token
+  - Calls `verify_jwt()` to validate token
+  - Returns `user_id` from JWT payload
+  - Raises `HTTPException(401)` if authentication fails
+- Dependency can be injected into FastAPI route handlers
+- Missing Authorization header returns 401
+- Invalid token returns 401
+
+**Mapping**:
+- **speckit.specify**: Authentication & Authorization
+- **speckit.plan**: Section 3.4 (Task Routes - User-Based Filtering)
+
+---
+
+### P2-T-011: Implement Create Task Endpoint
+
+**Description**: Create POST endpoint to add new tasks with user isolation.
+
+**Preconditions**:
+- P2-T-006, P2-T-007, P2-T-008, P2-T-010 completed
+
+**Files to be Created**:
+```
+backend/
+└── app/routes/
+    ├── __init__.py
+    └── tasks.py
+```
+
+**Files to be Modified**:
+- `backend/app/main.py` (register tasks router)
+
+**Expected Behavior**:
+- `tasks.py` defines `POST /api/{user_id}/tasks` endpoint:
+  - Accepts `TaskCreate` schema in request body
+  - Requires `get_current_user` dependency
+  - Validates URL `user_id` matches JWT `user_id` (else 403)
+  - Creates new Task with `user_id` from JWT (not URL)
+  - Saves to database
+  - Returns `TaskResponse` with 201 Created status
+- Endpoint registered in main.py with prefix `/api`
+- Successful request returns task with generated ID
+- User ID mismatch returns 403 Forbidden
+- Missing JWT returns 401 Unauthorized
+
+**Mapping**:
+- **speckit.specify**: FR-002 (Create Task)
+- **speckit.plan**: Section 3.4 (Task Routes), Section 5.2 (API Request Flow)
+
+---
+
+### P2-T-012: Implement List Tasks Endpoint
+
+**Description**: Create GET endpoint to retrieve all tasks for authenticated user.
+
+**Preconditions**:
+- P2-T-006, P2-T-007, P2-T-008, P2-T-010 completed
+
+**Files to be Created**: None
+
+**Files to be Modified**:
+- `backend/app/routes/tasks.py`
+
+**Expected Behavior**:
+- `tasks.py` defines `GET /api/{user_id}/tasks` endpoint:
+  - Requires `get_current_user` dependency
+  - Validates URL `user_id` matches JWT `user_id` (else 403)
+  - Queries database: `SELECT * FROM tasks WHERE user_id = <jwt_user_id>`
+  - Returns list of `TaskResponse` schemas
+  - Returns empty list if no tasks found
+- Successful request returns array of tasks
+- Only returns tasks owned by authenticated user
+- User ID mismatch returns 403 Forbidden
+- Missing JWT returns 401 Unauthorized
+
+**Mapping**:
+- **speckit.specify**: FR-003 (View Tasks)
+- **speckit.plan**: Section 3.4 (Task Routes), Section 3.5 (User-Based Filtering)
+
+---
+
+### P2-T-013: Implement Get Single Task Endpoint
+
+**Description**: Create GET endpoint to retrieve a specific task by ID.
+
+**Preconditions**:
+- P2-T-006, P2-T-007, P2-T-008, P2-T-010 completed
+
+**Files to be Created**: None
+
+**Files to be Modified**:
+- `backend/app/routes/tasks.py`
+
+**Expected Behavior**:
+- `tasks.py` defines `GET /api/{user_id}/tasks/{task_id}` endpoint:
+  - Accepts `task_id` as UUID path parameter
+  - Requires `get_current_user` dependency
+  - Validates URL `user_id` matches JWT `user_id` (else 403)
+  - Queries database: `SELECT * FROM tasks WHERE id = <task_id> AND user_id = <jwt_user_id>`
+  - Returns `TaskResponse` if found
+  - Returns 404 Not Found if task doesn't exist or not owned by user
+- Successful request returns single task object
+- Task owned by different user returns 404 (not 403, to prevent enumeration)
+- Invalid UUID format returns 422 Unprocessable Entity
+- Missing JWT returns 401 Unauthorized
+
+**Mapping**:
+- **speckit.specify**: FR-003 (View Tasks - Single Task)
+- **speckit.plan**: Section 3.4 (Task Routes)
+
+---
+
+### P2-T-014: Implement Update Task Endpoint
+
+**Description**: Create PUT endpoint to modify existing task fields.
+
+**Preconditions**:
+- P2-T-006, P2-T-007, P2-T-008, P2-T-010 completed
+
+**Files to be Created**: None
+
+**Files to be Modified**:
+- `backend/app/routes/tasks.py`
+
+**Expected Behavior**:
+- `tasks.py` defines `PUT /api/{user_id}/tasks/{task_id}` endpoint:
+  - Accepts `task_id` as UUID path parameter
+  - Accepts `TaskUpdate` schema in request body
+  - Requires `get_current_user` dependency
+  - Validates URL `user_id` matches JWT `user_id` (else 403)
+  - Queries database to find task by `task_id` AND `user_id`
+  - Returns 404 if task not found or not owned
+  - Updates only provided fields (partial update)
+  - Updates `updated_at` timestamp
+  - Saves to database
+  - Returns updated `TaskResponse`
+- Successful request returns updated task
+- Task owned by different user returns 404
+- Empty request body updates only timestamp
+- Missing JWT returns 401 Unauthorized
+
+**Mapping**:
+- **speckit.specify**: FR-004 (Update Task)
+- **speckit.plan**: Section 3.4 (Task Routes)
+
+---
+
+### P2-T-015: Implement Delete Task and Toggle Complete Endpoints
+
+**Description**: Create DELETE endpoint to remove tasks and PATCH endpoint to toggle completion status.
+
+**Preconditions**:
+- P2-T-006, P2-T-007, P2-T-008, P2-T-010 completed
+
+**Files to be Created**: None
+
+**Files to be Modified**:
+- `backend/app/routes/tasks.py`
+
+**Expected Behavior**:
+- `tasks.py` defines `DELETE /api/{user_id}/tasks/{task_id}` endpoint:
+  - Accepts `task_id` as UUID path parameter
+  - Requires `get_current_user` dependency
+  - Validates URL `user_id` matches JWT `user_id` (else 403)
+  - Queries database to find task by `task_id` AND `user_id`
+  - Returns 404 if task not found or not owned
+  - Deletes task from database
+  - Returns 204 No Content on success
+
+- `tasks.py` defines `PATCH /api/{user_id}/tasks/{task_id}/complete` endpoint:
+  - Accepts `task_id` as UUID path parameter
+  - Requires `get_current_user` dependency
+  - Validates URL `user_id` matches JWT `user_id` (else 403)
+  - Queries database to find task
+  - Returns 404 if task not found or not owned
+  - Toggles `completed` field (true → false, false → true)
+  - Updates `updated_at` timestamp
+  - Returns updated `TaskResponse`
+
+**Mapping**:
+- **speckit.specify**: FR-005 (Delete Task), FR-004 (Update Task - Completion)
+- **speckit.plan**: Section 3.4 (Task Routes)
+
+---
+
+## CATEGORY 3: FRONTEND DEVELOPMENT
+
+### P2-T-016: Setup Tailwind CSS and UI Foundation
+
+**Description**: Configure Tailwind CSS and create basic layout components.
+
+**Preconditions**:
+- P2-T-003 completed
+
+**Files to be Created**:
+```
+frontend/
+├── tailwind.config.js
+├── postcss.config.js
+├── app/globals.css
+└── components/
+    └── Layout.tsx
+```
+
+**Files to be Modified**:
+- `frontend/app/layout.tsx` (import globals.css)
+
+**Expected Behavior**:
+- Tailwind CSS configured with Next.js content paths
+- `globals.css` includes Tailwind directives: `@tailwind base`, `@tailwind components`, `@tailwind utilities`
+- `Layout.tsx` provides basic app structure (header, main, footer)
+- `app/layout.tsx` applies global styles and Layout component
+- Running dev server shows styled page
+- Tailwind classes work correctly in components
+
+**Mapping**:
+- **speckit.specify**: UI/UX Requirements
+- **speckit.plan**: Section 2.1 (Technology Stack - Styling)
+
+---
+
+### P2-T-017: Configure Better Auth
+
+**Description**: Set up Better Auth for authentication with email/password provider.
+
+**Preconditions**:
+- P2-T-003 completed
+- P2-T-016 completed
+
+**Files to be Created**:
+```
+frontend/
+├── lib/auth/
+│   └── better-auth.ts
+└── app/api/auth/[...better-auth]/
+    └── route.ts
+```
+
+**Files to be Modified**: None
+
+**Expected Behavior**:
+- `better-auth.ts` configures Better Auth client:
+  - Email/password provider enabled
+  - Database configuration (if using adapter)
+  - JWT secret from environment variable
+  - Session configuration
+- `route.ts` exports Better Auth API route handlers for Next.js
+- Better Auth API routes available at `/api/auth/*`
+- Configuration loads without errors
+- Environment variables properly referenced
+
+**Mapping**:
+- **speckit.specify**: Authentication Requirements
+- **speckit.plan**: Section 2.2 (Authentication via Better Auth), Section 6.2 (Better Auth Integration)
+
+---
+
+### P2-T-018: Create Authentication Pages
+
+**Description**: Build signup and signin pages with forms and Better Auth integration.
+
+**Preconditions**:
+- P2-T-017 completed
+
+**Files to be Created**:
+```
+frontend/
+├── app/signup/
+│   └── page.tsx
+├── app/signin/
+│   └── page.tsx
+└── components/
+    ├── SignupForm.tsx
+    └── SigninForm.tsx
+```
+
+**Files to be Modified**: None
+
+**Expected Behavior**:
+- `SignupForm.tsx` component:
+  - Form fields: email, password, confirm password
+  - Client-side validation (email format, password strength, passwords match)
+  - Calls Better Auth signup method on submit
+  - Shows success message and redirects to /signin
+  - Shows error messages for validation failures
+  
+- `SigninForm.tsx` component:
+  - Form fields: email, password
+  - Calls Better Auth signin method on submit
+  - Receives JWT token on success
+  - Redirects to /tasks on successful login
+  - Shows error messages for authentication failures
+  
+- `/signup` and `/signin` pages render respective forms
+- Forms are styled with Tailwind CSS
+- Loading states shown during API calls
+
+**Mapping**:
+- **speckit.specify**: FR-001 (User Authentication)
+- **speckit.plan**: Section 2.2 (Authentication via Better Auth), Section 5.1 (Authentication Flow)
+
+---
+
+### P2-T-019: Implement API Client with JWT Interceptor
+
+**Description**: Create centralized API client for backend communication with automatic JWT injection.
+
+**Preconditions**:
+- P2-T-017 completed
+
+**Files to be Created**:
+```
+frontend/
+└── lib/api/
+    └── client.ts
+```
+
+**Files to be Modified**: None
+
+**Expected Behavior**:
+- `client.ts` exports configured HTTP client (Axios or Fetch wrapper):
+  - Base URL set to backend API from environment variable
+  - Request interceptor to inject JWT from Better Auth session
+  - Adds `Authorization: Bearer <token>` header to all requests
+  - Response interceptor for error handling
+  - 401 errors redirect to /signin
+  - 403 errors show "Access Denied" message
+  - 404 errors show "Not Found" message
+  - Network errors show generic error message
+- Client can be imported and used throughout frontend
+- TypeScript types defined for API responses
+
+**Mapping**:
+- **speckit.specify**: API Integration Requirements
+- **speckit.plan**: Section 2.2 (API Client), Section 2.4 (Frontend Data Flow)
+
+---
+
+### P2-T-020: Create Task API Service Methods
+
+**Description**: Implement type-safe API methods for all task operations.
+
+**Preconditions**:
+- P2-T-019 completed
+
+**Files to be Created**:
+```
+frontend/
+├── lib/api/
+│   └── tasks.ts
+└── types/
+    └── task.ts
+```
+
+**Files to be Modified**: None
+
+**Expected Behavior**:
+- `types/task.ts` defines TypeScript interfaces:
+  - `Task`: Matches backend TaskResponse schema
+  - `TaskCreate`: Matches backend TaskCreate schema
+  - `TaskUpdate`: Matches backend TaskUpdate schema
+  
+- `tasks.ts` exports API methods:
+  - `getTasks(userId: string): Promise<Task[]>` - GET /api/{userId}/tasks
+  - `getTask(userId: string, taskId: string): Promise<Task>` - GET /api/{userId}/tasks/{taskId}
+  - `createTask(userId: string, data: TaskCreate): Promise<Task>` - POST /api/{userId}/tasks
+  - `updateTask(userId: string, taskId: string, data: TaskUpdate): Promise<Task>` - PUT /api/{userId}/tasks/{taskId}
+  - `deleteTask(userId: string, taskId: string): Promise<void>` - DELETE /api/{userId}/tasks/{taskId}
+  - `toggleComplete(userId: string, taskId: string): Promise<Task>` - PATCH /api/{userId}/tasks/{taskId}/complete
+  
+- All methods use API client from P2-T-019
+- All methods properly typed with TypeScript
+- Errors propagate to caller for handling
+
+**Mapping**:
+- **speckit.specify**: API Integration Requirements
+- **speckit.plan**: Section 2.2 (API Client)
+
+---
+
+### P2-T-021: Create Protected Route Wrapper
+
+**Description**: Implement authentication guard component for protected routes.
+
+**Preconditions**:
+- P2-T-017 completed
+
+**Files to be Created**:
+```
+frontend/
+└── components/
+    └── ProtectedRoute.tsx
+```
+
+**Files to be Modified**: None
+
+**Expected Behavior**:
+- `ProtectedRoute.tsx` component:
+  - Checks Better Auth session on mount
+  - If user not authenticated → redirect to /signin
+  - If user authenticated → render children
+  - Shows loading state while checking auth
+  - Extracts user_id from session for child components
+- Component wraps protected pages
+- Prevents unauthorized access to task pages
+- Smooth redirect experience (no flash of content)
+
+**Mapping**:
+- **speckit.specify**: Authentication & Authorization
+- **speckit.plan**: Section 2.2 (JWT Handling - Protected Routes)
+
+---
+
+### P2-T-022: Build Task List Page
+
+**Description**: Create main task list view with display, create, and delete functionality.
+
+**Preconditions**:
+- P2-T-020, P2-T-021 completed
+
+**Files to be Created**:
+```
+frontend/
+├── app/tasks/
+│   └── page.tsx
+└── components/
+    ├── TaskList.tsx
+    └── TaskItem.tsx
+```
+
+**Files to be Modified**: None
+
+**Expected Behavior**:
+- `app/tasks/page.tsx`:
+  - Wrapped with ProtectedRoute component
+  - Fetches tasks on mount using `getTasks()`
+  - Displays loading state while fetching
+  - Renders TaskList component with tasks
+  - Provides "Create New Task" button
+  
+- `TaskList.tsx` component:
+  - Accepts tasks array as prop
+  - Maps over tasks to render TaskItem components
+  - Shows empty state if no tasks
+  - Handles task deletion callback
+  
+- `TaskItem.tsx` component:
+  - Displays task title, description, completion status
+  - Checkbox to toggle completion (calls `toggleComplete()`)
+  - Link to task detail page
+  - Delete button (calls `deleteTask()` with confirmation)
+  - Styled with Tailwind CSS
+  
+- All CRUD operations update UI immediately (optimistic updates or refetch)
+- Error messages shown for failed operations
+
+**Mapping**:
+- **speckit.specify**: FR-003 (View Tasks), FR-005 (Delete Task)
+- **speckit.plan**: Section 2.2 (UI Pages for Task CRUD)
+
+---
+
+### P2-T-023: Build Task Creation Form
+
+**Description**: Create form component for adding new tasks.
+
+**Preconditions**:
+- P2-T-020, P2-T-021 completed
+
+**Files to be Created**:
+```
+frontend/
+└── components/
+    └── TaskForm.tsx
+```
+
+**Files to be Modified**:
+- `frontend/app/tasks/page.tsx` (integrate create form)
+
+**Expected Behavior**:
+- `TaskForm.tsx` component:
+  - Form fields: title (required), description (optional)
+  - Client-side validation (title not empty, max lengths)
+  - Submit calls `createTask()` API method
+  - Shows loading state during submission
+  - On success: clears form and triggers parent refresh
+  - On error: displays error message
+  - Cancel button to close form
+  - Styled with Tailwind CSS
+  
+- Task list page integrates TaskForm:
+  - "Create New Task" button shows form (modal or inline)
+  - Form submission adds task to list
+  - Newly created task appears in list immediately
+  
+- Form validation prevents invalid submissions
+- User feedback for all states (loading, success, error)
+
+**Mapping**:
+- **speckit.specify**: FR-002 (Create Task)
+- **speckit.plan**: Section 2.2 (UI Pages for Task CRUD - Task Creation Form)
+
+---
+
+### P2-T-024: Build Task Detail Page
+
+**Description**: Create individual task view with edit and delete functionality.
+
+**Preconditions**:
+- P2-T-020, P2-T-021, P2-T-023 completed
+
+**Files to be Created**:
+```
+frontend/
+└── app/tasks/[id]/
+    └── page.tsx
+```
+
+**Files to be Modified**: None
+
+**Expected Behavior**:
+- `app/tasks/[id]/page.tsx`:
+  - Wrapped with ProtectedRoute component
+  - Extracts task ID from URL parameter
+  - Fetches single task using `getTask()`
+  - Displays loading state while fetching
+  - Shows task details (title, description, status, timestamps)
+  - Edit mode toggle to enable/disable editing
+  - When edit mode enabled:
+    - Reuses TaskForm component in edit mode
+    - Pre-fills form with current task data
+    - Submit calls `updateTask()` API method
+  - Delete button (calls `deleteTask()` with confirmation)
+  - Delete redirects to /tasks after success
+  - Back button to return to task list
+  - 404 error handling if task not found
+  
+- Editing updates task and exits edit mode
+- All operations provide user feedback
+
+**Mapping**:
+- **speckit.specify**: FR-003 (View Tasks - Single), FR-004 (Update Task)
+- **speckit.plan**: Section 2.2 (UI Pages for Task CRUD)
+
+---
+
+### P2-T-025: Implement Home Page and Navigation
+
+**Description**: Create landing page with navigation and authentication-aware routing.
+
+**Preconditions**:
+- P2-T-018, P2-T-021, P2-T-022 completed
+
+**Files to be Created**:
+```
+frontend/
+└── components/
+    └── Navbar.tsx
+```
+
+**Files to be Modified**:
+- `frontend/app/page.tsx`
+- `frontend/components/Layout.tsx`
+
+**Expected Behavior**:
+- `app/page.tsx`:
+  - Checks authentication state
+  - If authenticated → redirect to /tasks
+  - If not authenticated → redirect to /signin
+  - Shows loading state during check
+  
+- `Navbar.tsx` component:
+  - Shows different links based on auth state
+  - When authenticated:
+    - Display user email
+    - Link to /tasks
+    - Logout button (calls Better Auth signout)
+  - When not authenticated:
+    - Link to /signin
+    - Link to /signup
+  - Styled with Tailwind CSS
+  
+- `Layout.tsx` includes Navbar at top
+- Navigation works correctly across all pages
+- Logout clears session and redirects to /signin
+
+**Mapping**:
+- **speckit.specify**: UI/UX Requirements
+- **speckit.plan**: Section 2.2 (UI Pages for Task CRUD), Section 2.3 (Frontend Directory Structure)
+
+---
+
+## CATEGORY 4: INTEGRATION & TESTING
+
+### P2-T-026: Configure CORS and Environment Variables
+
+**Description**: Ensure proper CORS configuration and environment variable setup for local development.
+
+**Preconditions**:
+- P2-T-008 completed (backend)
+- P2-T-003 completed (frontend)
+
+**Files to be Created**: None
+
+**Files to be Modified**:
+- `backend/.env` (create from .env.example)
+- `frontend/.env.local` (create from .env.local.example)
+- `backend/app/main.py` (verify CORS config)
+
+**Expected Behavior**:
+- Backend `.env` configured:
+  ```
+  DATABASE_URL=sqlite:///./dev.db
+  JWT_SECRET=<generated_secure_random_string>
+  CORS_ORIGIN=http://localhost:3000
+  JWT_ALGORITHM=HS256
+  JWT_EXPIRATION_HOURS=1
+  ```
+  
+- Frontend `.env.local` configured:
+  ```
+  NEXT_PUBLIC_API_URL=http://localhost:8000
+  BETTER_AUTH_SECRET=<same_as_backend_JWT_SECRET>
+  BETTER_AUTH_URL=http://localhost:3000
+  ```
+  
+- CORS in `main.py` allows:
+  - Origin: http://localhost:3000
+  - Credentials: true
+  - Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS
+  - Headers: Content-Type, Authorization
+  
+- Frontend can successfully call backend APIs
+- No CORS errors in browser console
+- JWT tokens properly shared between Better Auth and backend
+
+**Mapping**:
+- **speckit.specify**: Development Environment Setup
+- **speckit.plan**: Section 6.1 (Frontend ↔ Backend Communication), Section 8.1 (Development Environment)
+
+---
+
+### P2-T-027: End-to-End Authentication Flow Test
+
+**Description**: Verify complete authentication flow from signup to JWT-protected API access.
+
+**Preconditions**:
+- P2-T-018 completed (auth pages)
+- P2-T-017 completed (Better Auth)
+- P2-T-010 completed (JWT verification)
+- P2-T-026 completed (CORS and env)
+
+**Files to be Created**: None
+
+**Files to be Modified**: None
+
+**Expected Behavior**:
+Manual verification steps:
+1. Start backend server: `uvicorn app.main:app --reload`
+2. Start frontend server: `npm run dev`
+3. Navigate to http://localhost:3000/signup
+4. Register new user with email and password
+5. Verify redirect to /signin
+6. Sign in with registered credentials
+7. Verify JWT token received and stored
+8. Verify redirect to /tasks
+9. Open browser DevTools Network tab
+10. Verify Authorization header present in API requests
+11. Verify backend logs show successful JWT verification
+12. Sign out and verify token cleared
+13. Verify redirect to /signin
+14. Attempt to access /tasks without auth → redirected to /signin
+
+- All steps complete without errors
+- JWT properly generated, transmitted, and verified
+- User isolation enforced (each user sees only their data)
+
+**Mapping**:
+- **speckit.specify**: FR-001 (User Authentication)
+- **speckit.plan**: Section 5.1 (Authentication Flow), Section 5.2 (API Request Flow)
+
+---
+
+### P2-T-028: End-to-End Task CRUD Flow Test
+
+**Description**: Verify complete task management flow with all CRUD operations.
+
+**Preconditions**:
+- All backend task endpoints completed (P2-T-011 to P2-T-015)
+- All frontend task pages completed (P2-T-022 to P2-T-024)
+- P2-T-027 completed (authentication working)
+
+**Files to be Created**: None
+
+**Files to be Modified**: None
+
+**Expected Behavior**:
+Manual verification steps:
+1. Sign in as user
+2. Navigate to /tasks (should be empty)
+3. Click "Create New Task" button
+4. Fill form: title="Test Task", description="Test Description"
+5. Submit form
+6. Verify task appears in list immediately
+7. Verify task has correct title, description, completed=false
+8. Click task to navigate to detail page
+9. Verify all task details displayed correctly
+10. Click "Edit" button
+11. Modify title to "Updated Task"
+12. Save changes
+13. Verify task updated in UI
+14. Toggle completion checkbox
+15. Verify task marked as completed
+16. Click "Delete" button and confirm
+17. Verify redirect to /tasks
+18. Verify task removed from list
+19. Create multiple tasks and verify all appear in list
+20. Sign out and sign in as different user
+21. Verify new user sees empty task list (user isolation)
+
+- All CRUD operations work correctly
+- UI updates reflect backend changes
+- User isolation prevents cross-user data access
+
+**Mapping**:
+- **speckit.specify**: FR-002 to FR-005 (All Task Operations)
+- **speckit.plan**: Section 5.2 (API Request Flow), Section 5.3 (User Isolation Enforcement)
+
+---
+
+### P2-T-029: Database Schema Verification
+
+**Description**: Verify database tables, indexes, and constraints are correctly created.
+
+**Preconditions**:
+- P2-T-006 completed (Task model)
+- P2-T-008 completed (FastAPI app with table creation)
+- Backend server has been started at least once
+
+**Files to be Created**: None
+
+**Files to be Modified**: None
+
+**Expected Behavior**:
+Manual verification steps:
+1. Start backend server to trigger table creation
+2. Connect to SQLite database: `sqlite3 backend/dev.db`
+3. Check tasks table exists: `.tables`
+4. View tasks table schema: `.schema tasks`
+5. Verify columns: id, user_id, title, description, completed, created_at, updated_at
+6. Verify data types and constraints match Task model
+7. Check indexes: `.indexes tasks`
+8. Verify index on user_id exists
+9. Create task via API and verify stored in database
+10. Query database directly: `SELECT * FROM tasks;`
+11. Verify timestamps auto-generated correctly
+12. Verify UUID format for id field
+
+- Database schema matches `speckit.plan` Section 4.2
+- All indexes created as specified
+- Data persists correctly across server restarts
+- Constraints enforced (NOT NULL, defaults, etc.)
+
+**Mapping**:
+- **speckit.specify**: Database Requirements
+- **speckit.plan**: Section 4 (DATABASE ARCHITECTURE)
+
+---
+
+### P2-T-030: Documentation and Deployment Preparation
+
+**Description**: Complete project documentation and prepare for deployment.
+
+**Preconditions**:
+- All implementation tasks completed (P2-T-001 to P2-T-029)
+
+**Files to be Created**:
+```
+todo-phase2-full_stack/
+├── docs/
+│   ├── API.md
+│   └── DEPLOYMENT.md
+└── docker-compose.yml (optional)
+```
+
+**Files to be Modified**:
+- `README.md` (comprehensive project overview)
+- `specs/SETUP.md` (finalize setup instructions)
+
+**Expected Behavior**:
+- `API.md` documents all backend endpoints:
+  - Endpoint URL, method, description
+  - Request/response schemas
+  - Authentication requirements
+  - Example curl commands
+  - Error responses
+  
+- `DEPLOYMENT.md` includes:
+  - Production environment setup
+  - PostgreSQL migration from SQLite
+  - Environment variable configuration
+  - Frontend build and deployment (Vercel/Netlify)
+  - Backend deployment (Railway/Render)
+  - Security considerations
+  
+- `README.md` includes:
+  - Project overview and features
+  - Technology stack summary
+  - Quick start guide
+  - Links to detailed documentation
+  - Development workflow
+  - Contributing guidelines
+  
+- `docker-compose.yml` (optional):
+  - Service definitions for frontend, backend, database
+  - Development environment in containers
+  - Network configuration
+  
+- All documentation accurate and complete
+- Setup instructions tested on clean environment
+- Project ready for handoff or deployment
+
+**Mapping**:
+- **speckit.specify**: Documentation Requirements
+- **speckit.plan**: Section 8 (DEPLOYMENT ARCHITECTURE)
+
+---
+
+## TASK DEPENDENCY GRAPH
+
+```
+Infrastructure Setup (Sequential):
+P2-T-001 → P2-T-002 → P2-T-004
+         → P2-T-003
+         → P2-T-005
+
+Backend Development (Mostly Sequential):
+P2-T-004 → P2-T-006 → P2-T-007
+         → P2-T-008 → P2-T-009 → P2-T-010 → P2-T-011
+                                           → P2-T-012
+                                           → P2-T-013
+                                           → P2-T-014
+                                           → P2-T-015
+
+Frontend Development (Mostly Sequential):
+P2-T-003 → P2-T-016 → P2-T-017 → P2-T-018
+                              → P2-T-019 → P2-T-020 → P2-T-022 → P2-T-023
+                              → P2-T-021 → P2-T-024
+                                        → P2-T-025
+
+Integration & Testing (Sequential):
+P2-T-008 + P2-T-003 → P2-T-026
+P2-T-018 + P2-T-017 + P2-T-010 + P2-T-026 → P2-T-027
+P2-T-015 + P2-T-024 + P2-T-027 → P2-T-028
+P2-T-006 + P2-T-008 → P2-T-029
+ALL TASKS → P2-T-030
+```
+
+---
+
+## TASK SUMMARY
+
+**Total Tasks**: 30
+
+**By Category**:
+- Infrastructure & Setup: 5 tasks
+- Backend Development: 10 tasks
+- Frontend Development: 10 tasks
+- Integration & Testing: 5 tasks
+
+**Estimated Complexity**:
+- Simple: 8 tasks (configuration, basic setup)
+- Medium: 15 tasks (CRUD endpoints, UI components)
+- Complex: 7 tasks (auth integration, end-to-end testing, documentation)
+
+---
+
+**Note**: This task breakdown is designed for sequential implementation. Each task is self-contained with clear preconditions, deliverables, and verification criteria. Tasks should be completed in dependency order for smooth development flow.
+
+**Implementation Approach**: Start with infrastructure setup, build backend API completely, then build frontend to consume the API, and finally perform integration testing.

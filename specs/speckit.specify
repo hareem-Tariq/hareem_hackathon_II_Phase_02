@@ -1,0 +1,1287 @@
+# Todo Full-Stack Web Application - Feature Specification
+## Basic-Level Functionality Only
+
+**Version**: 1.0.0  
+**Date**: January 1, 2026  
+**Status**: Draft  
+**Scope**: Basic-level functionality only
+
+---
+
+## Overview
+
+This specification defines the **basic functionality** for a multi-user Todo web application. Users can register, authenticate via Better Auth, and manage their personal todo tasks through a REST API.
+
+### Core Requirements
+- User authentication via Better Auth
+- JWT-based authorization
+- Multi-user task management (strict user isolation)
+- Users can ONLY access their own tasks
+- Missing token → 401 Unauthorized
+- User mismatch → 403 Forbidden
+- Task not found → 404 Not Found
+
+---
+
+## 1. USER AUTHENTICATION
+
+### 1.1 User Signup
+
+**User Story:**  
+As a new user, I want to create an account so that I can manage my personal todo list.
+
+**Acceptance Criteria:**
+- User provides email and password
+- Email must be unique (no duplicate accounts)
+- Password must meet minimum security requirements (at least 8 characters)
+- System creates user account using Better Auth
+- System returns success confirmation with user ID
+- User account is immediately active after creation
+
+**API Behavior:**
+
+Request:
+```http
+POST /api/auth/signup
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "securepassword123"
+}
+```
+
+Success Response (201 Created):
+```json
+{
+  "success": true,
+  "userId": "user_abc123",
+  "email": "user@example.com"
+}
+```
+
+**Error Cases:**
+
+Email already exists (409 Conflict):
+```json
+{
+  "error": "Email already registered"
+}
+```
+
+Invalid email format (400 Bad Request):
+```json
+{
+  "error": "Invalid email format"
+}
+```
+
+Password too short (400 Bad Request):
+```json
+{
+  "error": "Password must be at least 8 characters"
+}
+```
+
+Missing required fields (400 Bad Request):
+```json
+{
+  "error": "Email and password are required"
+}
+```
+
+---
+
+### 1.2 User Signin
+
+**User Story:**  
+As a registered user, I want to sign in to my account so that I can access my tasks.
+
+**Acceptance Criteria:**
+- User provides email and password
+- System validates credentials via Better Auth
+- On success, system issues JWT token
+- JWT token contains user ID and email
+- JWT token has expiration time (e.g., 24 hours)
+- Token is returned in response body
+
+**API Behavior:**
+
+Request:
+```http
+POST /api/auth/signin
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "securepassword123"
+}
+```
+
+Success Response (200 OK):
+```json
+{
+  "success": true,
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": "user_abc123",
+    "email": "user@example.com"
+  }
+}
+```
+
+**Error Cases:**
+
+Invalid credentials (401 Unauthorized):
+```json
+{
+  "error": "Invalid email or password"
+}
+```
+
+Missing required fields (400 Bad Request):
+```json
+{
+  "error": "Email and password are required"
+}
+```
+
+Account not found (401 Unauthorized):
+```json
+{
+  "error": "Invalid email or password"
+}
+```
+
+---
+
+### 1.3 JWT Token Usage
+
+**User Story:**  
+As a signed-in user, I want my authentication to persist across requests so that I don't have to sign in repeatedly.
+
+**Acceptance Criteria:**
+- Client must send JWT token in Authorization header for protected endpoints
+- Token format: `Authorization: Bearer <token>`
+- Server validates token on each protected request
+- Server extracts user ID from valid token
+- Invalid or expired tokens are rejected with 401 error
+- Missing token on protected endpoint returns 401 error
+
+**API Behavior:**
+
+Protected Request Example:
+```http
+GET /api/tasks
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Error Cases:**
+
+Missing token (401 Unauthorized):
+```json
+{
+  "error": "Authentication required"
+}
+```
+
+Invalid token (401 Unauthorized):
+```json
+{
+  "error": "Invalid token"
+}
+```
+
+Expired token (401 Unauthorized):
+```json
+{
+  "error": "Token expired"
+}
+```
+
+---
+
+## 2. TASK CRUD OPERATIONS
+
+### Multi-User Rules:
+- Each task belongs to exactly one user (the creator)
+- Users can ONLY see, update, and delete their own tasks
+- Attempting to access another user's task returns 403 Forbidden
+- Task not found returns 404 Not Found
+- All task endpoints require valid JWT token
+
+---
+
+### 2.1 Add Task
+
+**User Story:**  
+As a logged-in user, I want to create a new task so that I can track things I need to do.
+
+**Acceptance Criteria:**
+- User must be authenticated (valid JWT token required)
+- Task title is required (non-empty string)
+- Task description is optional
+- New task is associated with the authenticated user
+- New task starts with completed status = false
+- System assigns unique task ID
+- System records creation timestamp
+- Returns created task details
+
+**API Behavior:**
+
+Request:
+```http
+POST /api/tasks
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "title": "Buy groceries",
+  "description": "Milk, eggs, bread"
+}
+```
+
+Success Response (201 Created):
+```json
+{
+  "id": "task_xyz789",
+  "userId": "user_abc123",
+  "title": "Buy groceries",
+  "description": "Milk, eggs, bread",
+  "completed": false,
+  "createdAt": "2026-01-01T10:00:00Z",
+  "updatedAt": "2026-01-01T10:00:00Z"
+}
+```
+
+Minimal Request (description optional):
+```http
+POST /api/tasks
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "title": "Call dentist"
+}
+```
+
+Success Response (201 Created):
+```json
+{
+  "id": "task_xyz790",
+  "userId": "user_abc123",
+  "title": "Call dentist",
+  "description": null,
+  "completed": false,
+  "createdAt": "2026-01-01T10:05:00Z",
+  "updatedAt": "2026-01-01T10:05:00Z"
+}
+```
+
+**Error Cases:**
+
+Missing token (401 Unauthorized):
+```json
+{
+  "error": "Authentication required"
+}
+```
+
+Missing title (400 Bad Request):
+```json
+{
+  "error": "Title is required"
+}
+```
+
+Empty title (400 Bad Request):
+```json
+{
+  "error": "Title cannot be empty"
+}
+```
+
+---
+
+### 2.2 View All Tasks
+
+**User Story:**  
+As a logged-in user, I want to see a list of all my tasks so that I can review what I need to do.
+
+**Acceptance Criteria:**
+- User must be authenticated (valid JWT token required)
+- Returns ONLY tasks belonging to the authenticated user
+- Returns empty array if user has no tasks
+- Tasks are returned with all fields (id, title, description, completed, timestamps)
+- No pagination required (basic functionality)
+
+**API Behavior:**
+
+Request:
+```http
+GET /api/tasks
+Authorization: Bearer <token>
+```
+
+Success Response (200 OK):
+```json
+{
+  "tasks": [
+    {
+      "id": "task_xyz789",
+      "userId": "user_abc123",
+      "title": "Buy groceries",
+      "description": "Milk, eggs, bread",
+      "completed": false,
+      "createdAt": "2026-01-01T10:00:00Z",
+      "updatedAt": "2026-01-01T10:00:00Z"
+    },
+    {
+      "id": "task_xyz790",
+      "userId": "user_abc123",
+      "title": "Call dentist",
+      "description": null,
+      "completed": true,
+      "createdAt": "2026-01-01T10:05:00Z",
+      "updatedAt": "2026-01-01T11:30:00Z"
+    }
+  ]
+}
+```
+
+Empty List Response (200 OK):
+```json
+{
+  "tasks": []
+}
+```
+
+**Error Cases:**
+
+Missing token (401 Unauthorized):
+```json
+{
+  "error": "Authentication required"
+}
+```
+
+---
+
+### 2.3 Get Single Task Details
+
+**User Story:**  
+As a logged-in user, I want to view the details of a specific task so that I can see all information about it.
+
+**Acceptance Criteria:**
+- User must be authenticated (valid JWT token required)
+- User can ONLY retrieve their own tasks
+- Returns task with all fields if found and owned by user
+- Returns 404 if task doesn't exist
+- Returns 403 if task exists but belongs to another user
+
+**API Behavior:**
+
+Request:
+```http
+GET /api/tasks/task_xyz789
+Authorization: Bearer <token>
+```
+
+Success Response (200 OK):
+```json
+{
+  "id": "task_xyz789",
+  "userId": "user_abc123",
+  "title": "Buy groceries",
+  "description": "Milk, eggs, bread",
+  "completed": false,
+  "createdAt": "2026-01-01T10:00:00Z",
+  "updatedAt": "2026-01-01T10:00:00Z"
+}
+```
+
+**Error Cases:**
+
+Missing token (401 Unauthorized):
+```json
+{
+  "error": "Authentication required"
+}
+```
+
+Task not found (404 Not Found):
+```json
+{
+  "error": "Task not found"
+}
+```
+
+Task belongs to another user (403 Forbidden):
+```json
+{
+  "error": "Access denied"
+}
+```
+
+---
+
+### 2.4 Update Task
+
+**User Story:**  
+As a logged-in user, I want to update a task's details so that I can modify the title, description, or completion status.
+
+**Acceptance Criteria:**
+- User must be authenticated (valid JWT token required)
+- User can ONLY update their own tasks
+- Can update title (must not be empty if provided)
+- Can update description (can be set to null or empty)
+- Can update completed status (boolean)
+- At least one field must be provided
+- System updates the updatedAt timestamp
+- Returns updated task details
+- Returns 404 if task doesn't exist
+- Returns 403 if task belongs to another user
+
+**API Behavior:**
+
+Update title and description:
+```http
+PATCH /api/tasks/task_xyz789
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "title": "Buy groceries and snacks",
+  "description": "Milk, eggs, bread, chips"
+}
+```
+
+Success Response (200 OK):
+```json
+{
+  "id": "task_xyz789",
+  "userId": "user_abc123",
+  "title": "Buy groceries and snacks",
+  "description": "Milk, eggs, bread, chips",
+  "completed": false,
+  "createdAt": "2026-01-01T10:00:00Z",
+  "updatedAt": "2026-01-01T12:00:00Z"
+}
+```
+
+Update single field:
+```http
+PATCH /api/tasks/task_xyz789
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "completed": true
+}
+```
+
+Success Response (200 OK):
+```json
+{
+  "id": "task_xyz789",
+  "userId": "user_abc123",
+  "title": "Buy groceries and snacks",
+  "description": "Milk, eggs, bread, chips",
+  "completed": true,
+  "createdAt": "2026-01-01T10:00:00Z",
+  "updatedAt": "2026-01-01T12:30:00Z"
+}
+```
+
+**Error Cases:**
+
+Missing token (401 Unauthorized):
+```json
+{
+  "error": "Authentication required"
+}
+```
+
+Task not found (404 Not Found):
+```json
+{
+  "error": "Task not found"
+}
+```
+
+Task belongs to another user (403 Forbidden):
+```json
+{
+  "error": "Access denied"
+}
+```
+
+Empty title provided (400 Bad Request):
+```json
+{
+  "error": "Title cannot be empty"
+}
+```
+
+No fields provided (400 Bad Request):
+```json
+{
+  "error": "At least one field must be provided"
+}
+```
+
+---
+
+### 2.5 Delete Task
+
+**User Story:**  
+As a logged-in user, I want to delete a task so that I can remove tasks I no longer need.
+
+**Acceptance Criteria:**
+- User must be authenticated (valid JWT token required)
+- User can ONLY delete their own tasks
+- Task is permanently removed from database
+- Returns success confirmation
+- Returns 404 if task doesn't exist
+- Returns 403 if task belongs to another user
+
+**API Behavior:**
+
+Request:
+```http
+DELETE /api/tasks/task_xyz789
+Authorization: Bearer <token>
+```
+
+Success Response (200 OK):
+```json
+{
+  "success": true,
+  "message": "Task deleted successfully"
+}
+```
+
+**Error Cases:**
+
+Missing token (401 Unauthorized):
+```json
+{
+  "error": "Authentication required"
+}
+```
+
+Task not found (404 Not Found):
+```json
+{
+  "error": "Task not found"
+}
+```
+
+Task belongs to another user (403 Forbidden):
+```json
+{
+  "error": "Access denied"
+}
+```
+
+---
+
+### 2.6 Toggle Task Completion
+
+**User Story:**  
+As a logged-in user, I want to quickly toggle a task's completion status so that I can mark tasks as done or undone.
+
+**Acceptance Criteria:**
+- User must be authenticated (valid JWT token required)
+- User can ONLY toggle their own tasks
+- If task is completed (true), sets to incomplete (false)
+- If task is incomplete (false), sets to completed (true)
+- System updates the updatedAt timestamp
+- Returns updated task details
+- Returns 404 if task doesn't exist
+- Returns 403 if task belongs to another user
+
+**API Behavior:**
+
+Request:
+```http
+POST /api/tasks/task_xyz789/toggle
+Authorization: Bearer <token>
+```
+
+Success Response (200 OK) - toggled from false to true:
+```json
+{
+  "id": "task_xyz789",
+  "userId": "user_abc123",
+  "title": "Buy groceries",
+  "description": "Milk, eggs, bread",
+  "completed": true,
+  "createdAt": "2026-01-01T10:00:00Z",
+  "updatedAt": "2026-01-01T13:00:00Z"
+}
+```
+
+Success Response (200 OK) - toggled from true to false:
+```json
+{
+  "id": "task_xyz789",
+  "userId": "user_abc123",
+  "title": "Buy groceries",
+  "description": "Milk, eggs, bread",
+  "completed": false,
+  "createdAt": "2026-01-01T10:00:00Z",
+  "updatedAt": "2026-01-01T13:05:00Z"
+}
+```
+
+**Error Cases:**
+
+Missing token (401 Unauthorized):
+```json
+{
+  "error": "Authentication required"
+}
+```
+
+Task not found (404 Not Found):
+```json
+{
+  "error": "Task not found"
+}
+```
+
+Task belongs to another user (403 Forbidden):
+```json
+{
+  "error": "Access denied"
+}
+```
+
+---
+
+## 3. REST API SPECIFICATIONS
+
+### API Overview
+
+**Base URL:** `/api`
+
+**Authentication:** All task endpoints require JWT authentication via Authorization header.
+
+**Authorization Logic:**
+1. Backend extracts `user_id` from JWT token payload
+2. JWT `user_id` MUST match URL `{user_id}` parameter
+3. All database queries are filtered by `user_id` from JWT
+4. Mismatch between JWT user_id and URL user_id → 403 Forbidden
+
+---
+
+### Endpoint 1: Get All Tasks
+
+```
+GET /api/{user_id}/tasks
+```
+
+**Purpose:** Retrieve all tasks belonging to the authenticated user.
+
+**Path Parameters:**
+- `user_id` (string, required): User identifier - must match JWT user_id
+
+**Required Headers:**
+```http
+Authorization: Bearer <jwt_token>
+```
+
+**Request Body:** None
+
+**Success Response (200 OK):**
+```json
+{
+  "tasks": [
+    {
+      "id": "task_abc123",
+      "userId": "user_xyz789",
+      "title": "Buy groceries",
+      "description": "Milk, eggs, bread",
+      "completed": false,
+      "createdAt": "2026-01-01T10:00:00Z",
+      "updatedAt": "2026-01-01T10:00:00Z"
+    },
+    {
+      "id": "task_def456",
+      "userId": "user_xyz789",
+      "title": "Call dentist",
+      "description": null,
+      "completed": true,
+      "createdAt": "2026-01-01T09:00:00Z",
+      "updatedAt": "2026-01-01T11:00:00Z"
+    }
+  ]
+}
+```
+
+**Authorization Rules:**
+1. Extract JWT from `Authorization: Bearer <token>` header
+2. Verify JWT signature and expiration
+3. Extract `user_id` from JWT payload
+4. Compare JWT `user_id` with URL path `{user_id}`
+5. If mismatch → return 403 Forbidden
+6. Query database: `WHERE user_id = <jwt_user_id>`
+7. Return ONLY tasks belonging to authenticated user
+
+**Failure Responses:**
+
+401 Unauthorized (Missing Token):
+```json
+{
+  "error": "Authentication required"
+}
+```
+
+401 Unauthorized (Invalid/Expired Token):
+```json
+{
+  "error": "Invalid token"
+}
+```
+
+403 Forbidden (User ID Mismatch):
+```json
+{
+  "error": "Access denied"
+}
+```
+
+---
+
+### Endpoint 2: Create Task
+
+```
+POST /api/{user_id}/tasks
+```
+
+**Purpose:** Create a new task for the authenticated user.
+
+**Path Parameters:**
+- `user_id` (string, required): User identifier - must match JWT user_id
+
+**Required Headers:**
+```http
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "title": "string (required, non-empty)",
+  "description": "string (optional, can be null or omitted)"
+}
+```
+
+**Example Request:**
+```http
+POST /api/user_xyz789/tasks
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "title": "Buy groceries",
+  "description": "Milk, eggs, bread"
+}
+```
+
+**Success Response (201 Created):**
+```json
+{
+  "id": "task_abc123",
+  "userId": "user_xyz789",
+  "title": "Buy groceries",
+  "description": "Milk, eggs, bread",
+  "completed": false,
+  "createdAt": "2026-01-01T10:00:00Z",
+  "updatedAt": "2026-01-01T10:00:00Z"
+}
+```
+
+**Authorization Rules:**
+1. Extract and verify JWT token
+2. Extract `user_id` from JWT payload
+3. Compare JWT `user_id` with URL path `{user_id}`
+4. If mismatch → return 403 Forbidden
+5. Set task `user_id` field to JWT `user_id` (not from request body)
+6. Insert into database with `user_id` from JWT
+7. Return created task
+
+**Failure Responses:**
+
+400 Bad Request (Missing Title):
+```json
+{
+  "error": "Title is required"
+}
+```
+
+400 Bad Request (Empty Title):
+```json
+{
+  "error": "Title cannot be empty"
+}
+```
+
+401 Unauthorized (Missing/Invalid Token):
+```json
+{
+  "error": "Authentication required"
+}
+```
+
+403 Forbidden (User ID Mismatch):
+```json
+{
+  "error": "Access denied"
+}
+```
+
+---
+
+### Endpoint 3: Get Single Task
+
+```
+GET /api/{user_id}/tasks/{id}
+```
+
+**Purpose:** Retrieve details of a specific task owned by the authenticated user.
+
+**Path Parameters:**
+- `user_id` (string, required): User identifier - must match JWT user_id
+- `id` (string, required): Task identifier
+
+**Required Headers:**
+```http
+Authorization: Bearer <jwt_token>
+```
+
+**Request Body:** None
+
+**Example Request:**
+```http
+GET /api/user_xyz789/tasks/task_abc123
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "id": "task_abc123",
+  "userId": "user_xyz789",
+  "title": "Buy groceries",
+  "description": "Milk, eggs, bread",
+  "completed": false,
+  "createdAt": "2026-01-01T10:00:00Z",
+  "updatedAt": "2026-01-01T10:00:00Z"
+}
+```
+
+**Authorization Rules:**
+1. Extract and verify JWT token
+2. Extract `user_id` from JWT payload
+3. Compare JWT `user_id` with URL path `{user_id}`
+4. If mismatch → return 403 Forbidden
+5. Query database: `WHERE id = {id} AND user_id = <jwt_user_id>`
+6. If task not found → return 404 Not Found
+7. Return task details
+
+**Failure Responses:**
+
+401 Unauthorized (Missing/Invalid Token):
+```json
+{
+  "error": "Authentication required"
+}
+```
+
+403 Forbidden (User ID Mismatch):
+```json
+{
+  "error": "Access denied"
+}
+```
+
+404 Not Found (Task Not Found or Not Owned):
+```json
+{
+  "error": "Task not found"
+}
+```
+
+**Note:** Return 404 even if task exists but belongs to another user (prevents information leakage).
+
+---
+
+### Endpoint 4: Update Task
+
+```
+PUT /api/{user_id}/tasks/{id}
+```
+
+**Purpose:** Update an existing task's title, description, or completion status.
+
+**Path Parameters:**
+- `user_id` (string, required): User identifier - must match JWT user_id
+- `id` (string, required): Task identifier
+
+**Required Headers:**
+```http
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "title": "string (optional)",
+  "description": "string (optional, can be null)",
+  "completed": "boolean (optional)"
+}
+```
+
+**Note:** At least one field must be provided.
+
+**Example Request:**
+```http
+PUT /api/user_xyz789/tasks/task_abc123
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "title": "Buy groceries and snacks",
+  "description": "Milk, eggs, bread, chips"
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "id": "task_abc123",
+  "userId": "user_xyz789",
+  "title": "Buy groceries and snacks",
+  "description": "Milk, eggs, bread, chips",
+  "completed": false,
+  "createdAt": "2026-01-01T10:00:00Z",
+  "updatedAt": "2026-01-01T12:00:00Z"
+}
+```
+
+**Authorization Rules:**
+1. Extract and verify JWT token
+2. Extract `user_id` from JWT payload
+3. Compare JWT `user_id` with URL path `{user_id}`
+4. If mismatch → return 403 Forbidden
+5. Update database: `WHERE id = {id} AND user_id = <jwt_user_id>`
+6. If no rows affected → return 404 Not Found
+7. Update `updatedAt` timestamp automatically
+8. Return updated task
+
+**Failure Responses:**
+
+400 Bad Request (No Fields Provided):
+```json
+{
+  "error": "At least one field must be provided"
+}
+```
+
+400 Bad Request (Empty Title):
+```json
+{
+  "error": "Title cannot be empty"
+}
+```
+
+401 Unauthorized (Missing/Invalid Token):
+```json
+{
+  "error": "Authentication required"
+}
+```
+
+403 Forbidden (User ID Mismatch):
+```json
+{
+  "error": "Access denied"
+}
+```
+
+404 Not Found (Task Not Found or Not Owned):
+```json
+{
+  "error": "Task not found"
+}
+```
+
+---
+
+### Endpoint 5: Delete Task
+
+```
+DELETE /api/{user_id}/tasks/{id}
+```
+
+**Purpose:** Permanently delete a task owned by the authenticated user.
+
+**Path Parameters:**
+- `user_id` (string, required): User identifier - must match JWT user_id
+- `id` (string, required): Task identifier
+
+**Required Headers:**
+```http
+Authorization: Bearer <jwt_token>
+```
+
+**Request Body:** None
+
+**Example Request:**
+```http
+DELETE /api/user_xyz789/tasks/task_abc123
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Task deleted successfully"
+}
+```
+
+**Alternative Success Response (204 No Content):**
+```
+(Empty response body)
+```
+
+**Authorization Rules:**
+1. Extract and verify JWT token
+2. Extract `user_id` from JWT payload
+3. Compare JWT `user_id` with URL path `{user_id}`
+4. If mismatch → return 403 Forbidden
+5. Delete from database: `WHERE id = {id} AND user_id = <jwt_user_id>`
+6. If no rows affected → return 404 Not Found
+7. Return success response
+
+**Failure Responses:**
+
+401 Unauthorized (Missing/Invalid Token):
+```json
+{
+  "error": "Authentication required"
+}
+```
+
+403 Forbidden (User ID Mismatch):
+```json
+{
+  "error": "Access denied"
+}
+```
+
+404 Not Found (Task Not Found or Not Owned):
+```json
+{
+  "error": "Task not found"
+}
+```
+
+---
+
+### Endpoint 6: Toggle Task Completion
+
+```
+PATCH /api/{user_id}/tasks/{id}/complete
+```
+
+**Purpose:** Toggle a task's completion status (true ↔ false).
+
+**Path Parameters:**
+- `user_id` (string, required): User identifier - must match JWT user_id
+- `id` (string, required): Task identifier
+
+**Required Headers:**
+```http
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "completed": "boolean (required)"
+}
+```
+
+**Alternative:** No request body required - endpoint toggles current state.
+
+**Example Request:**
+```http
+PATCH /api/user_xyz789/tasks/task_abc123/complete
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "completed": true
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "id": "task_abc123",
+  "userId": "user_xyz789",
+  "title": "Buy groceries",
+  "description": "Milk, eggs, bread",
+  "completed": true,
+  "createdAt": "2026-01-01T10:00:00Z",
+  "updatedAt": "2026-01-01T13:00:00Z"
+}
+```
+
+**Authorization Rules:**
+1. Extract and verify JWT token
+2. Extract `user_id` from JWT payload
+3. Compare JWT `user_id` with URL path `{user_id}`
+4. If mismatch → return 403 Forbidden
+5. Update database: `WHERE id = {id} AND user_id = <jwt_user_id>`
+6. Toggle `completed` field or set to request body value
+7. If no rows affected → return 404 Not Found
+8. Update `updatedAt` timestamp automatically
+9. Return updated task
+
+**Failure Responses:**
+
+400 Bad Request (Invalid Completed Value):
+```json
+{
+  "error": "Completed field must be a boolean"
+}
+```
+
+401 Unauthorized (Missing/Invalid Token):
+```json
+{
+  "error": "Authentication required"
+}
+```
+
+403 Forbidden (User ID Mismatch):
+```json
+{
+  "error": "Access denied"
+}
+```
+
+404 Not Found (Task Not Found or Not Owned):
+```json
+{
+  "error": "Task not found"
+}
+```
+
+---
+
+### Critical Authorization Rules (All Endpoints)
+
+**JWT Processing:**
+1. Extract JWT from `Authorization: Bearer <token>` header
+2. Verify JWT signature using secret key
+3. Check JWT expiration timestamp
+4. Extract `user_id` from JWT payload
+5. If any step fails → return 401 Unauthorized
+
+**User ID Validation:**
+1. Compare JWT `user_id` with URL path parameter `{user_id}`
+2. If they don't match → return 403 Forbidden
+3. This prevents users from accessing other users' resources
+
+**Database Query Filtering:**
+1. ALL task queries MUST include: `WHERE user_id = <jwt_user_id>`
+2. NEVER use URL `{user_id}` directly in database queries
+3. ALWAYS use `user_id` extracted from verified JWT
+4. This ensures complete user isolation at the database level
+
+**Error Response Priority:**
+1. Missing/Invalid JWT → 401 Unauthorized (authentication failure)
+2. JWT user_id ≠ URL user_id → 403 Forbidden (authorization failure)
+3. Task not found → 404 Not Found (resource doesn't exist or not owned)
+4. Invalid request data → 400 Bad Request (validation failure)
+
+---
+
+## 4. SECURITY & ACCESS CONTROL SUMMARY
+
+### Authentication Rules:
+- All task endpoints require valid JWT token
+- Token must be sent in Authorization header: `Bearer <token>`
+- Missing token → 401 Unauthorized
+- Invalid/expired token → 401 Unauthorized
+
+### Authorization Rules:
+- Each task has a userId field linking it to its owner
+- Users can ONLY perform CRUD operations on their own tasks
+- Attempting to access another user's task → 403 Forbidden
+- Task not found in database → 404 Not Found
+
+### Multi-User Isolation:
+- GET /api/tasks returns ONLY the authenticated user's tasks
+- GET /api/tasks/:id checks ownership before returning
+- PATCH /api/tasks/:id checks ownership before updating
+- DELETE /api/tasks/:id checks ownership before deleting
+- POST /api/tasks/:id/toggle checks ownership before toggling
+
+### Error Priority:
+1. 401 if authentication fails (missing/invalid token)
+2. 404 if task doesn't exist
+3. 403 if task exists but belongs to another user
+4. 400 for validation errors (bad input)
+
+---
+
+## 5. DATA VALIDATION SUMMARY
+
+### User Data:
+- Email: Required, must be valid email format, must be unique
+- Password: Required, minimum 8 characters
+
+### Task Data:
+- Title: Required, non-empty string
+- Description: Optional, can be null or empty string
+- Completed: Boolean, defaults to false on creation
+- UserId: Automatically set from authenticated user, cannot be changed
+- Id: System-generated, unique
+- CreatedAt: System-generated timestamp
+- UpdatedAt: System-generated timestamp, updated on modifications
+
+---
+
+## 6. OUT OF SCOPE (Not in Basic Functionality)
+
+The following features are NOT part of basic functionality:
+- Password reset/recovery
+- Email verification
+- OAuth/social login
+- Task sharing between users
+- Task categories or tags
+- Task priority levels
+- Task due dates
+- Task search or filtering
+- Task sorting options
+- Pagination for task lists
+- User profile management
+- User settings
+- Rate limiting
+- Task attachments
+- Task comments
+- Task history/audit log
+
+---
+
+**End of Specification Document**

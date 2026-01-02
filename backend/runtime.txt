@@ -1,0 +1,6 @@
+# ============================================
+# Runtime Configuration for Heroku
+# ============================================
+# Specifies Python version for deployment
+
+python-3.11.10

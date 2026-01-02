@@ -1,0 +1,685 @@
+# Todo Full-Stack Web Application - Architecture Plan
+
+**Version**: 1.0.0  
+**Date**: January 1, 2026  
+**Status**: Architecture Design  
+**Scope**: Basic-level functionality only
+
+---
+
+## 1. MONOREPO STRUCTURE
+
+```
+todo-phase2-full_stack/
+├── frontend/                 # Next.js application
+│   ├── app/                 # Next.js App Router
+│   ├── components/          # React components
+│   ├── lib/                 # Utilities and clients
+│   │   ├── auth/           # Better Auth configuration
+│   │   ├── api/            # API client
+│   │   └── utils/          # Helper functions
+│   ├── public/             # Static assets
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── next.config.js
+│
+├── backend/                 # FastAPI application
+│   ├── app/
+│   │   ├── main.py         # FastAPI app entry point
+│   │   ├── models/         # SQLModel database models
+│   │   ├── routes/         # API route handlers
+│   │   ├── middleware/     # JWT verification middleware
+│   │   ├── schemas/        # Pydantic request/response schemas
+│   │   ├── database.py     # Database connection
+│   │   └── config.py       # Configuration settings
+│   ├── requirements.txt
+│   └── pyproject.toml
+│
+├── specs/                   # Specification documents
+│   ├── speckit.constitution
+│   ├── speckit.specify
+│   ├── speckit.plan        # This file
+│   └── speckit.tasks
+│
+├── .gitignore
+└── README.md
+```
+
+---
+
+## 2. FRONTEND ARCHITECTURE (Next.js)
+
+### 2.1 Technology Stack
+- **Framework:** Next.js 14+ (App Router)
+- **Language:** TypeScript
+- **Authentication:** Better Auth
+- **HTTP Client:** Fetch API / Axios
+- **Styling:** Tailwind CSS (or CSS Modules)
+- **State Management:** React hooks (useState, useContext)
+
+### 2.2 Frontend Responsibilities
+
+#### Authentication via Better Auth
+- Configure Better Auth client
+- Implement signup flow
+- Implement signin flow
+- Handle JWT token reception
+- Store JWT securely (httpOnly cookies preferred)
+- Provide authentication context to app
+- Handle token expiration and refresh
+- Implement signout functionality
+
+#### JWT Handling
+- Receive JWT from Better Auth on successful login
+- Store JWT in secure storage (httpOnly cookie or secure storage)
+- Include JWT in Authorization header for all API requests
+- Handle token expiration (redirect to login)
+- Clear token on logout
+- Validate token presence before protected route access
+
+#### API Client
+- Centralized HTTP client module
+- Automatic JWT token injection in Authorization header
+- Base URL configuration for backend API
+- Request/response interceptors
+- Error handling (401 → redirect to login, 403 → access denied, 404 → not found)
+- Type-safe API methods using TypeScript interfaces
+
+#### UI Pages for Task CRUD
+- **/signup** - User registration page
+- **/signin** - User login page
+- **/tasks** - Task list view (protected route)
+- **/tasks/[id]** - Single task detail view (protected route)
+- Protected route wrapper component
+- Task creation form
+- Task edit form
+- Task deletion confirmation
+- Task completion toggle checkbox
+
+### 2.3 Frontend Directory Structure
+
+```
+frontend/
+├── app/
+│   ├── layout.tsx              # Root layout
+│   ├── page.tsx                # Home page (redirects to /tasks or /signin)
+│   ├── signup/
+│   │   └── page.tsx            # Signup page
+│   ├── signin/
+│   │   └── page.tsx            # Signin page
+│   ├── tasks/
+│   │   ├── page.tsx            # Task list page
+│   │   └── [id]/
+│   │       └── page.tsx        # Task detail page
+│   └── api/
+│       └── auth/
+│           └── [...better-auth]/route.ts  # Better Auth API routes
+│
+├── components/
+│   ├── TaskList.tsx            # Task list component
+│   ├── TaskItem.tsx            # Single task component
+│   ├── TaskForm.tsx            # Create/edit task form
+│   ├── ProtectedRoute.tsx      # Auth guard component
+│   └── Layout.tsx              # App layout wrapper
+│
+├── lib/
+│   ├── auth/
+│   │   └── better-auth.ts      # Better Auth configuration
+│   ├── api/
+│   │   ├── client.ts           # HTTP client with JWT interceptor
+│   │   └── tasks.ts            # Task API methods
+│   └── utils/
+│       └── token.ts            # JWT token utilities
+│
+└── types/
+    ├── auth.ts                 # Authentication types
+    └── task.ts                 # Task types
+```
+
+### 2.4 Frontend Data Flow
+
+```
+User Action → Component Event → API Client → HTTP Request (with JWT) 
+→ Backend API → Response → Update State → Re-render UI
+```
+
+---
+
+## 3. BACKEND ARCHITECTURE (FastAPI)
+
+### 3.1 Technology Stack
+- **Framework:** FastAPI
+- **Language:** Python 3.11+
+- **ORM:** SQLModel
+- **Database:** SQLite (development) / PostgreSQL (production)
+- **Authentication:** JWT verification (PyJWT)
+- **Validation:** Pydantic models
+
+### 3.2 Backend Responsibilities
+
+#### FastAPI Application
+- Main application instance
+- CORS middleware configuration (allow frontend origin)
+- Router registration
+- Error handling middleware
+- Application startup/shutdown events
+- Health check endpoint
+
+#### JWT Verification Middleware
+- Extract JWT from Authorization header (Bearer token)
+- Verify JWT signature using secret key
+- Validate JWT expiration
+- Extract user_id from JWT payload
+- Attach user_id to request context
+- Return 401 if token missing, invalid, or expired
+- Pass authenticated request to route handler
+
+#### SQLModel Models
+- **User model** - Managed by Better Auth (reference only)
+- **Task model** - SQLModel class for tasks table
+- Relationship definitions
+- Field validations
+- Timestamps (created_at, updated_at)
+
+#### Task Routes
+- `GET /api/{user_id}/tasks` - List all tasks for user
+- `POST /api/{user_id}/tasks` - Create new task
+- `GET /api/{user_id}/tasks/{id}` - Get single task
+- `PUT /api/{user_id}/tasks/{id}` - Update task
+- `DELETE /api/{user_id}/tasks/{id}` - Delete task
+- `PATCH /api/{user_id}/tasks/{id}/complete` - Toggle completion
+
+#### User-Based Filtering
+- Extract user_id from verified JWT (not from URL)
+- Validate JWT user_id matches URL {user_id} parameter
+- Return 403 if user_id mismatch
+- Filter ALL database queries by authenticated user_id
+- Ensure complete user isolation
+- Return 404 for tasks not owned by user (not 403)
+
+### 3.3 Backend Directory Structure
+
+```
+backend/
+├── app/
+│   ├── main.py                 # FastAPI app entry point
+│   │
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── user.py            # User model (reference for Better Auth)
+│   │   └── task.py            # Task SQLModel model
+│   │
+│   ├── schemas/
+│   │   ├── __init__.py
+│   │   ├── task.py            # Task request/response schemas
+│   │   └── auth.py            # Auth response schemas
+│   │
+│   ├── routes/
+│   │   ├── __init__.py
+│   │   └── tasks.py           # Task CRUD endpoints
+│   │
+│   ├── middleware/
+│   │   ├── __init__.py
+│   │   └── auth.py            # JWT verification middleware
+│   │
+│   ├── database.py            # Database connection and session
+│   ├── config.py              # Environment configuration
+│   └── dependencies.py        # FastAPI dependencies (get_db, get_current_user)
+│
+└── requirements.txt
+```
+
+### 3.4 Backend Request Flow
+
+```
+HTTP Request → CORS Middleware → JWT Verification Middleware 
+→ Extract user_id from JWT → Route Handler → Validate URL user_id 
+→ Database Query (filtered by JWT user_id) → Response
+```
+
+---
+
+## 4. DATABASE ARCHITECTURE
+
+### 4.1 Database Technology
+- **Development:** SQLite (file-based, simple setup)
+- **Production:** PostgreSQL (recommended for multi-user production)
+- **ORM:** SQLModel (combines SQLAlchemy + Pydantic)
+
+### 4.2 Database Schema
+
+#### Users Table
+**Managed by Better Auth** - Application does not directly create this table.
+
+```
+users
+├── id (UUID/String, PRIMARY KEY)
+├── email (String, UNIQUE, NOT NULL)
+├── password_hash (String, NOT NULL)
+├── created_at (DateTime, NOT NULL)
+└── updated_at (DateTime, NOT NULL)
+```
+
+#### Tasks Table
+
+```
+tasks
+├── id (UUID, PRIMARY KEY)
+├── user_id (UUID/String, FOREIGN KEY → users.id, NOT NULL)
+├── title (String(200), NOT NULL)
+├── description (Text, NULL)
+├── completed (Boolean, DEFAULT false, NOT NULL)
+├── created_at (DateTime, NOT NULL)
+└── updated_at (DateTime, NOT NULL)
+```
+
+**Field Details:**
+- `id`: Unique identifier for task (UUID v4)
+- `user_id`: Foreign key referencing users table (owner of task)
+- `title`: Task title (max 200 characters, required)
+- `description`: Optional task description (max 1000 characters)
+- `completed`: Boolean flag for completion status (default: false)
+- `created_at`: Timestamp when task was created (auto-generated)
+- `updated_at`: Timestamp when task was last modified (auto-updated)
+
+### 4.3 Indexes
+
+**Primary Index:**
+- `PRIMARY KEY` on `tasks.id`
+
+**Foreign Key Index:**
+- `INDEX` on `tasks.user_id` (for fast user-based queries)
+
+**Composite Index:**
+- `INDEX` on `(user_id, created_at)` for sorted list queries
+
+**Unique Constraints:**
+- None (users can have duplicate task titles)
+
+### 4.4 Database Relationships
+
+```
+users (1) ──< (many) tasks
+
+One user has many tasks
+Each task belongs to exactly one user
+```
+
+**Relationship Rules:**
+- One-to-Many: User → Tasks
+- Cascade delete: If user deleted, all their tasks are deleted (optional)
+- Foreign key constraint enforced at database level
+
+### 4.5 SQLModel Model Definition Pattern
+
+```
+Task Model:
+- Inherits from SQLModel, table=True
+- Fields with types and constraints
+- Relationship to User model
+- Auto-generated timestamps via database defaults
+- Validation via Pydantic
+```
+
+---
+
+## 5. REQUEST LIFECYCLE
+
+### 5.1 Authentication Flow (Login → JWT)
+
+```
+1. User submits credentials (email + password) to /signin page
+   ↓
+2. Frontend sends POST request to Better Auth endpoint
+   ↓
+3. Better Auth validates credentials
+   ↓
+4. If valid: Better Auth generates JWT with user_id and email
+   ↓
+5. JWT returned to frontend in response
+   ↓
+6. Frontend stores JWT securely (httpOnly cookie or secure storage)
+   ↓
+7. Frontend redirects user to /tasks page
+   ↓
+8. User is now authenticated
+```
+
+**JWT Payload Structure:**
+```json
+{
+  "user_id": "user_xyz789",
+  "email": "user@example.com",
+  "iat": 1704096000,
+  "exp": 1704182400
+}
+```
+
+### 5.2 API Request Flow (Task CRUD)
+
+```
+1. User performs action (e.g., clicks "Create Task")
+   ↓
+2. Frontend component calls API client method
+   ↓
+3. API client retrieves JWT from storage
+   ↓
+4. API client adds JWT to Authorization header
+   ↓
+5. HTTP request sent to backend:
+   POST /api/{user_id}/tasks
+   Authorization: Bearer <jwt_token>
+   Content-Type: application/json
+   Body: { "title": "...", "description": "..." }
+   ↓
+6. Backend receives request
+   ↓
+7. CORS middleware processes request
+   ↓
+8. JWT Verification Middleware:
+   - Extracts token from Authorization header
+   - Verifies signature using secret key
+   - Checks expiration timestamp
+   - Extracts user_id from payload
+   - Attaches user_id to request context
+   - If validation fails → Return 401 Unauthorized
+   ↓
+9. Request reaches route handler (e.g., create_task)
+   ↓
+10. Route handler validates URL {user_id} matches JWT user_id
+    - If mismatch → Return 403 Forbidden
+    ↓
+11. Route handler validates request body
+    - If invalid → Return 400 Bad Request
+    ↓
+12. Database query executed with user isolation:
+    INSERT INTO tasks (user_id, title, description, completed)
+    VALUES (<jwt_user_id>, ..., ..., false)
+    ↓
+13. Database returns created task
+    ↓
+14. Route handler formats response
+    ↓
+15. Response sent back to frontend:
+    201 Created
+    { "id": "...", "userId": "...", "title": "...", ... }
+    ↓
+16. API client receives response
+    ↓
+17. Frontend component updates state
+    ↓
+18. UI re-renders with new task
+```
+
+### 5.3 User Isolation Enforcement
+
+**Critical Security Flow:**
+
+```
+Authentication Layer (JWT Middleware):
+├── Extract JWT from Authorization header
+├── Verify JWT signature and expiration
+├── Extract user_id from JWT payload → TRUSTED_USER_ID
+└── Attach TRUSTED_USER_ID to request context
+
+Authorization Layer (Route Handler):
+├── Get TRUSTED_USER_ID from request context
+├── Get URL {user_id} parameter
+├── Compare: TRUSTED_USER_ID == URL {user_id}
+│   ├── If NO → Return 403 Forbidden (access denied)
+│   └── If YES → Continue
+└── Database query: WHERE user_id = TRUSTED_USER_ID
+
+Database Layer:
+├── ALL queries MUST filter by user_id
+├── NEVER use URL {user_id} directly in queries
+├── ALWAYS use TRUSTED_USER_ID from JWT
+└── Returns ONLY data owned by authenticated user
+```
+
+**User Isolation Guarantees:**
+1. User A cannot view User B's tasks
+2. User A cannot modify User B's tasks
+3. User A cannot delete User B's tasks
+4. Attempting to access other user's resources → 403 or 404
+5. Database queries automatically scoped to authenticated user
+
+### 5.4 Error Response Flow
+
+```
+Error Occurs in Request Pipeline
+   ↓
+Authentication Error (Missing/Invalid JWT)
+   → 401 Unauthorized
+   → Frontend redirects to /signin
+   ↓
+Authorization Error (User ID Mismatch)
+   → 403 Forbidden
+   → Frontend shows "Access Denied" message
+   ↓
+Resource Not Found (Task doesn't exist or not owned)
+   → 404 Not Found
+   → Frontend shows "Task not found" message
+   ↓
+Validation Error (Invalid request data)
+   → 400 Bad Request
+   → Frontend shows validation error messages
+   ↓
+Server Error (Unexpected exception)
+   → 500 Internal Server Error
+   → Frontend shows "Something went wrong" message
+```
+
+---
+
+## 6. TECHNOLOGY INTEGRATION
+
+### 6.1 Frontend ↔ Backend Communication
+
+**Protocol:** HTTP/HTTPS  
+**Format:** JSON  
+**Authentication:** JWT in Authorization header  
+
+**Request Pattern:**
+```
+Frontend (Next.js)
+   ↓ HTTP Request
+   ↓ Authorization: Bearer <JWT>
+   ↓ Content-Type: application/json
+   ↓
+Backend (FastAPI)
+   ↓ Process Request
+   ↓ Query Database
+   ↓
+Database (SQLite/PostgreSQL)
+   ↓ Return Data
+   ↓
+Backend (FastAPI)
+   ↓ Format Response
+   ↓ Content-Type: application/json
+   ↓
+Frontend (Next.js)
+   ↓ Update UI
+```
+
+### 6.2 Better Auth Integration
+
+**Frontend (Next.js):**
+- Better Auth client library installed
+- Configuration in `lib/auth/better-auth.ts`
+- API routes for Better Auth in `app/api/auth/[...better-auth]/route.ts`
+- Signup/Signin pages use Better Auth methods
+- JWT received and stored after successful authentication
+
+**Backend (FastAPI):**
+- Backend does NOT handle authentication
+- Backend ONLY verifies JWT tokens issued by Better Auth
+- Uses shared JWT secret key to verify signatures
+- Better Auth manages user table directly
+
+**JWT Secret Sharing:**
+- Both Better Auth and FastAPI must share the same JWT secret key
+- Secret stored in environment variables
+- Frontend does not have access to secret (only uses tokens)
+
+### 6.3 Database Integration
+
+**SQLModel with FastAPI:**
+- SQLModel combines SQLAlchemy (database) + Pydantic (validation)
+- Models defined as Python classes
+- Automatic table creation via `SQLModel.metadata.create_all()`
+- Type-safe database queries
+- Async support (optional)
+
+**Database Connection:**
+- Connection string in environment variable
+- Session management via dependency injection
+- Connection pooling for production
+- Automatic session cleanup
+
+---
+
+## 7. SECURITY ARCHITECTURE
+
+### 7.1 Authentication Security
+- Better Auth handles password hashing (bcrypt/argon2)
+- JWT tokens signed with strong secret key (256+ bits)
+- Token expiration enforced (e.g., 1 hour)
+- Tokens transmitted over HTTPS only in production
+
+### 7.2 Authorization Security
+- JWT user_id is the source of truth
+- URL user_id parameter validated against JWT user_id
+- Database queries always filtered by JWT user_id
+- User isolation enforced at every layer
+
+### 7.3 API Security
+- CORS enabled for frontend origin only
+- No wildcard CORS origins in production
+- All requests over HTTPS in production
+- Security headers configured (X-Content-Type-Options, etc.)
+- Input validation on all endpoints
+- SQL injection prevented via ORM parameterized queries
+
+### 7.4 Error Handling Security
+- Never expose sensitive information in error messages
+- Generic authentication failure messages
+- Don't reveal whether user exists during login
+- Detailed errors logged server-side only
+- Stack traces hidden in production
+
+---
+
+## 8. DEPLOYMENT ARCHITECTURE
+
+### 8.1 Development Environment
+```
+Frontend (Next.js):
+- Dev server: http://localhost:3000
+- Hot reload enabled
+- Environment: .env.local
+
+Backend (FastAPI):
+- Dev server: http://localhost:8000
+- Auto-reload enabled
+- Environment: .env
+
+Database:
+- SQLite file: ./dev.db
+```
+
+### 8.2 Production Environment (Recommended)
+```
+Frontend:
+- Next.js deployed to Vercel/Netlify
+- Static + SSR pages
+- Environment variables configured
+
+Backend:
+- FastAPI deployed to Railway/Render/AWS
+- ASGI server (Uvicorn)
+- Environment variables configured
+
+Database:
+- PostgreSQL (managed service)
+- Connection pooling enabled
+- Automated backups
+```
+
+### 8.3 Environment Variables
+
+**Frontend (.env.local):**
+```
+NEXT_PUBLIC_API_URL=http://localhost:8000
+BETTER_AUTH_SECRET=<secret_key>
+BETTER_AUTH_URL=http://localhost:3000
+```
+
+**Backend (.env):**
+```
+DATABASE_URL=sqlite:///./dev.db
+JWT_SECRET=<secret_key>
+CORS_ORIGIN=http://localhost:3000
+```
+
+---
+
+## 9. DATA FLOW SUMMARY
+
+### 9.1 Authentication Data Flow
+```
+User Credentials → Better Auth → JWT Token → Frontend Storage 
+→ Authorization Header → Backend JWT Middleware → Verified User ID
+```
+
+### 9.2 Task CRUD Data Flow
+```
+User Action → Frontend Component → API Client (+ JWT) → Backend Route 
+→ JWT Verification → User ID Validation → Database Query (filtered) 
+→ Response → Frontend State Update → UI Render
+```
+
+### 9.3 User Isolation Data Flow
+```
+JWT (user_id=A) → Backend extracts user_id=A → Validates URL user_id=A 
+→ Database query: WHERE user_id = A → Returns ONLY User A's tasks 
+→ User B can NEVER see User A's tasks
+```
+
+---
+
+## 10. ARCHITECTURE PRINCIPLES
+
+### 10.1 Separation of Concerns
+- Frontend handles presentation and user interaction
+- Backend handles business logic and data persistence
+- Database handles data storage and retrieval
+- Better Auth handles authentication
+
+### 10.2 Security First
+- JWT verification at every API request
+- User isolation enforced at database level
+- No trust in client-provided user_id
+- Always use JWT user_id for authorization
+
+### 10.3 Type Safety
+- TypeScript in frontend for type checking
+- Pydantic/SQLModel in backend for validation
+- Shared type definitions between layers (via schemas)
+
+### 10.4 Scalability Considerations
+- Stateless backend (JWT, no sessions)
+- Database indexes for performance
+- Connection pooling for database
+- Horizontal scaling possible (multiple backend instances)
+
+### 10.5 Developer Experience
+- Monorepo structure for easy navigation
+- Clear separation of frontend/backend
+- Type-safe API contracts
+- Auto-reload in development
+- Comprehensive error messages
+
+---
+
+**End of Architecture Plan**

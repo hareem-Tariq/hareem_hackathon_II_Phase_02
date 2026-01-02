@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Test</title>
+</head>
+<body>
+    <h1>Authentication Flow Test</h1>
+    <div id="output" style="white-space: pre-wrap; font-family: monospace;"></div>
+    
+    <script>
+        const output = document.getElementById('output');
+        const log = (msg) => {
+            output.textContent += msg + '\n';
+            console.log(msg);
+        };
+
+        async function testAuth() {
+            const testEmail = `testuser_${Date.now()}@example.com`;
+            const testPassword = "SecurePass123!";
+            
+            log('='.repeat(60));
+            log('AUTHENTICATION FLOW TEST');
+            log('='.repeat(60));
+            log(`Test email: ${testEmail}`);
+            log(`Test password: ${testPassword}`);
+            log('');
+
+            // Test 1: Signup
+            log('[TEST 1] Testing signup...');
+            try {
+                const signupResponse = await fetch('/api/auth/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: testEmail,
+                        password: testPassword,
+                        name: "Test User"
+                    })
+                });
+                
+                const signupData = await signupResponse.text();
+                log(`  Status: ${signupResponse.status}`);
+                log(`  Response: ${signupData.substring(0, 200)}`);
+                
+                if (signupResponse.ok) {
+                    log('  ✓ PASS: Signup successful');
+                } else {
+                    log('  ✗ FAIL: Signup failed');
+                    return;
+                }
+            } catch (err) {
+                log(`  ✗ FAIL: ${err.message}`);
+                return;
+            }
+
+            log('');
+
+            // Test 2: Signin
+            log('[TEST 2] Testing login...');
+            try {
+                const signinResponse = await fetch('/api/auth/signin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: testEmail,
+                        password: testPassword
+                    })
+                });
+                
+                const signinData = await signinResponse.json();
+                log(`  Status: ${signinResponse.status}`);
+                log(`  Response: ${JSON.stringify(signinData, null, 2)}`);
+                
+                if (signinResponse.ok && signinData.token) {
+                    log('  ✓ PASS: Login successful');
+                    log(`  ✓ JWT Token: ${signinData.token.substring(0, 50)}...`);
+                } else {
+                    log('  ✗ FAIL: Login failed');
+                    return;
+                }
+            } catch (err) {
+                log(`  ✗ FAIL: ${err.message}`);
+                return;
+            }
+
+            log('');
+            log('='.repeat(60));
+            log('ALL TESTS PASSED!');
+            log('='.repeat(60));
+        }
+
+        testAuth();
+    </script>
+</body>
+</html>

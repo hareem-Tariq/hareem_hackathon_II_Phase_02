@@ -1,0 +1,199 @@
+# Spec-Kit Constitution
+# Todo Phase 2 - Full-Stack Web Application
+
+## Project Identity
+- **Name**: todo-phase2-full_stack
+- **Type**: Full-Stack Web Application
+- **Phase**: Phase 2 - Hackathon II
+- **Architecture**: Monorepo
+
+## Core Principles
+
+### 1. Monorepo Architecture
+- Single repository containing frontend and backend
+- Clear separation between frontend/ and backend/ directories
+- Shared types and interfaces where applicable
+- Independent deployment pipelines per service
+- Unified version control and CI/CD
+
+### 2. Frontend Stack (Non-Negotiable)
+- **Framework**: Next.js 16+ (latest stable)
+- **Router**: App Router (not Pages Router)
+- **Language**: TypeScript (strict mode)
+- **Styling**: Tailwind CSS
+- **Authentication**: Better Auth
+- **State Management**: React hooks and server components
+- **API Communication**: Fetch API with proper error handling
+
+### 3. Backend Stack (Non-Negotiable)
+- **Framework**: FastAPI (Python)
+- **ORM**: SQLModel
+- **Language**: Python 3.13+
+- **Authentication**: JWT verification (tokens issued by Better Auth)
+- **API Design**: RESTful architecture
+- **State**: Stateless backend (no sessions)
+
+### 4. Database (Non-Negotiable)
+- **Provider**: Neon Serverless PostgreSQL
+- **Access**: SQLModel ORM only
+- **Migrations**: Alembic or built-in SQLModel migrations
+- **Connection Pooling**: Managed by Neon
+- **Security**: Connection strings via environment variables
+
+### 5. Authentication & Security
+- **Frontend Auth**: Better Auth handles user authentication
+- **Token Format**: JWT (JSON Web Tokens)
+- **Backend Verification**: All protected endpoints must verify JWT
+- **User Isolation**: Strict row-level security - users can only access their own data
+- **Password Security**: Handled by Better Auth
+- **HTTPS**: Required for production
+- **CORS**: Properly configured for frontend-backend communication
+
+### 6. API Design Principles
+- **Style**: REST API first (no GraphQL, no gRPC)
+- **Versioning**: API versioning via path (e.g., /api/v1/)
+- **Stateless**: No server-side sessions
+- **JSON**: All requests/responses in JSON format
+- **HTTP Methods**: Proper use of GET, POST, PUT, PATCH, DELETE
+- **Status Codes**: Correct HTTP status codes for all responses
+- **Error Handling**: Consistent error response format
+
+### 7. Code Quality Standards
+- **Readability**: Code readability over cleverness
+- **TypeScript**: Strict type checking, no `any` types without justification
+- **Python**: Follow PEP 8, use type hints
+- **Documentation**: Clear docstrings and comments where needed
+- **Naming**: Descriptive names for variables, functions, and components
+- **DRY**: Don't Repeat Yourself, but prefer clarity over abstraction
+
+### 8. Security First
+- **Security over shortcuts**: Never compromise security for speed
+- **Input validation**: All user inputs must be validated
+- **SQL Injection**: Use ORM parameterized queries only
+- **XSS Protection**: Sanitize outputs, use React's built-in protections
+- **CSRF**: Proper token validation
+- **Secrets Management**: Environment variables for all secrets
+- **Data Isolation**: Users cannot access other users' data
+
+## Technical Constraints
+
+### Forbidden Technologies
+- ❌ No chatbot features
+- ❌ No MCP (Model Context Protocol)
+- ❌ No Kafka or message queues
+- ❌ No Dapr or service mesh
+- ❌ No Kubernetes orchestration
+- ❌ No WebSockets (for Phase 2)
+- ❌ No Server-Sent Events (for Phase 2)
+- ❌ No GraphQL
+- ❌ No manual coding before specs are complete
+
+### Required Technologies
+- ✅ Next.js 16+ (App Router, TypeScript, Tailwind)
+- ✅ FastAPI (Python)
+- ✅ SQLModel ORM
+- ✅ Neon Serverless PostgreSQL
+- ✅ Better Auth (Frontend)
+- ✅ JWT for backend verification
+- ✅ REST API
+- ✅ Stateless backend
+
+## Development Philosophy
+
+### Spec-Driven Development (STRICT)
+1. **No code until all specs are complete and approved**
+2. Specifications must be comprehensive and unambiguous
+3. All requirements captured in speckit.specify
+4. Test scenarios defined before implementation
+5. Acceptance criteria must be measurable
+6. User stories drive feature development
+
+### Implementation Process
+1. Write complete specifications
+2. Get approval on specifications
+3. Break down into tasks (speckit.tasks)
+4. Implement with tests
+5. Verify against acceptance criteria
+6. Deploy only after validation
+
+### Quality Gates
+- All specifications reviewed before coding
+- Type checking passes (TypeScript strict mode)
+- Linting passes (ESLint, Ruff/Black for Python)
+- All tests pass
+- Security review completed
+- Performance benchmarks met
+
+## Project Structure
+
+```
+todo-phase2-full_stack/
+├── frontend/          # Next.js application
+├── backend/           # FastAPI application
+├── shared/            # Shared types, constants
+├── docs/              # Documentation
+├── speckit.constitution  # This file
+├── speckit.specify       # Specifications
+├── speckit.plan          # Implementation plan
+├── speckit.tasks         # Task breakdown
+└── README.md
+```
+
+## Non-Goals (Phase 2)
+
+- Real-time collaboration features
+- Mobile applications (native)
+- Offline support
+- Complex workflow automation
+- AI/ML features
+- Analytics dashboards (beyond basic stats)
+- Email notifications
+- Third-party integrations
+- Export/import features (initially)
+
+## Success Criteria
+
+### Functional Requirements
+- User registration and authentication working
+- CRUD operations for todos (create, read, update, delete)
+- User isolation enforced (no data leakage)
+- Responsive UI works on desktop and mobile browsers
+- Fast page loads and API responses
+
+### Technical Requirements
+- TypeScript strict mode with no errors
+- All API endpoints protected with JWT verification
+- Database queries use SQLModel ORM
+- No SQL injection vulnerabilities
+- Proper error handling throughout
+- Environment variables for all configuration
+- Clean separation of frontend and backend
+
+### Quality Requirements
+- Code is readable and well-documented
+- All specs have been met
+- Security audit passes
+- Performance is acceptable (< 200ms API response)
+- No console errors in production
+- Proper logging for debugging
+
+## Change Management
+
+### Constitution Changes
+- This constitution can only be modified with explicit approval
+- All changes must be documented with rationale
+- Breaking changes require major version bump
+- Additions must align with core principles
+
+### Scope Changes
+- New features require specification updates
+- Technology changes require constitution amendment
+- Security requirements can never be relaxed
+- Performance requirements can be tightened but not loosened
+
+---
+
+**Version**: 1.0.0  
+**Last Updated**: January 1, 2026  
+**Status**: Active  
+**Approval**: Required before any implementation begins

@@ -1,0 +1,6 @@
+# Task P2-T-002: Setup Backend Python Environment
+[project]
+name = "todo-backend"
+version = "1.0.0"
+description = "FastAPI backend for Todo Full-Stack Application"
+requires-python = ">=3.11"
