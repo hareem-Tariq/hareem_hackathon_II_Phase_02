@@ -1,0 +1,21 @@
+# Heroku Deployment Checklist
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+env/
+.env
+.env.local
+*.sqlite
+*.db
+.pytest_cache/
+.coverage
+htmlcov/
+.vscode/
+.idea/
+*.log
+tests/
+test_*.py
+*_test.py

@@ -3,8 +3,17 @@ from sqlmodel import SQLModel, create_engine, Session
 from .config import settings
 
 
-# Create database engine
-engine = create_engine(settings.DATABASE_URL, echo=True)
+# Create database engine with Neon PostgreSQL SSL support
+connect_args = {}
+if settings.DATABASE_URL.startswith("postgresql"):
+    # Enable SSL for Neon PostgreSQL in production
+    connect_args = {"sslmode": "require"}
+
+engine = create_engine(
+    settings.DATABASE_URL,
+    echo=False,  # Disable SQL echo in production
+    connect_args=connect_args
+)
 
 
 def create_db_and_tables():
