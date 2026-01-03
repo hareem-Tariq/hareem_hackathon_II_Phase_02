@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/better-auth'
 import jwt from 'jsonwebtoken'
 
-const JWT_SECRET = process.env.BETTER_AUTH_SECRET || ''
+const JWT_SECRET = process.env.JWT_SECRET || ''
 
 export async function POST(request: NextRequest) {
   try {
