@@ -21,7 +21,7 @@ def verify_jwt(token: str) -> dict:
     try:
         payload = jwt.decode(
             token,
-            settings.BETTER_AUTH_SECRET,
+            settings.JWT_SECRET,
             algorithms=[settings.JWT_ALGORITHM]
         )
         
